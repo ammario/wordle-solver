@@ -24,9 +24,13 @@ func main() {
 		flog.Fatal("open: %v", err)
 	}
 
-	var testFlag bool
+	var (
+		testFlag      int
+		showHistogram bool
+	)
 
-	flag.BoolVar(&testFlag, "test", false, "test algorithm performance")
+	flag.IntVar(&testFlag, "test", 0, "test algorithm performance")
+	flag.BoolVar(&showHistogram, "showHistogram", false, "show showHistogram with test")
 
 	flag.Parse()
 
@@ -48,7 +52,7 @@ func main() {
 		words: words,
 	}
 
-	if !testFlag {
+	if testFlag == 0 {
 		secret := flag.Arg(0)
 		if len(secret) != 5 {
 			flog.Fatal("%q not 5 letters", secret)
@@ -61,12 +65,12 @@ func main() {
 		solve(os.Stdout, secret, c)
 	}
 
-	test(c)
+	test(testFlag, c, showHistogram)
 }
 
-func test(c *corpus) {
-
+func test(count int, c *corpus, showHistogram bool) {
 	var (
+		solves    uint64
 		turnCount uint64
 		wg        sync.WaitGroup
 		words     = make(chan string)
@@ -80,6 +84,7 @@ func test(c *corpus) {
 			for w := range words {
 				turns := solve(ioutil.Discard, w, c)
 				atomic.AddUint64(&turnCount, uint64(turns))
+				atomic.AddUint64(&solves, 1)
 
 				histogramMu.Lock()
 				histogram[turns] = append(histogram[turns], w)
@@ -88,15 +93,20 @@ func test(c *corpus) {
 		}()
 	}
 
-	for _, w := range c.words {
-		words <- w
+	for i := 0; i < count; i++ {
+		for _, w := range c.words {
+			words <- w
+		}
 	}
 	close(words)
 	wg.Wait()
 
-	flog.Info("average solution in %04.2f steps", float64(turnCount)/float64(len(c.words)))
+	fmt.Printf("average solution in %04.5f steps\n", float64(turnCount)/float64(solves))
+	if !showHistogram {
+		return
+	}
 	for i, h := range histogram {
-		fmt.Printf("in turns %2d: %05.2f%% | ", i+1, float64(len(h))/float64(len(c.words))*100)
+		fmt.Printf("in turns %2d: %05.2f%% | ", i+1, float64(len(h))/float64(solves)*100)
 		for i := 0; i < len(h) && i < 7; i++ {
 			fmt.Printf("%v ", h[i])
 		}

@@ -59,6 +59,9 @@ type puzzle struct {
 }
 
 func (p *puzzle) guess(possibilities map[string]struct{}) string {
+	if p.turn == 0 {
+		return "arose"
+	}
 	// Excise invalid guesses.
 	for i := 0; i < p.turn; i++ {
 		lineHint := p.hints[i]
