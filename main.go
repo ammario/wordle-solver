@@ -6,6 +6,7 @@ import (
 	"index/suffixarray"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -14,8 +15,9 @@ import (
 )
 
 type corpus struct {
-	words []string
-	index *suffixarray.Index
+	words  []string
+	index  *suffixarray.Index
+	scores scoredWords
 }
 
 func main() {
@@ -27,10 +29,12 @@ func main() {
 	var (
 		testFlag      int
 		showHistogram bool
+		showTop       bool
 	)
 
 	flag.IntVar(&testFlag, "test", 0, "test algorithm performance")
-	flag.BoolVar(&showHistogram, "showHistogram", false, "show showHistogram with test")
+	flag.BoolVar(&showHistogram, "hist", false, "show histogram with test")
+	flag.BoolVar(&showTop, "show-top", false, "show top words")
 
 	flag.Parse()
 
@@ -48,8 +52,34 @@ func main() {
 		}
 	}
 	c := &corpus{
-		index: index,
-		words: words,
+		index:  index,
+		words:  words,
+		scores: scoreWords(words),
+	}
+
+	if showTop {
+		type scoredWord struct {
+			word  string
+			score float64
+		}
+		scoreArr := make([]scoredWord, 0, len(c.scores))
+
+		for word, score := range c.scores {
+			scoreArr = append(scoreArr, scoredWord{
+				word:  word,
+				score: score,
+			})
+		}
+		sort.Slice(scoreArr, func(i, j int) bool {
+			return scoreArr[i].score < scoreArr[j].score
+		})
+		fmt.Printf("top words: ")
+		for i := 0; i < 10; i++ {
+			fmt.Printf("%v ", scoreArr[i].word)
+		}
+
+		fmt.Printf("\n")
+
 	}
 
 	if testFlag == 0 {
@@ -63,9 +93,9 @@ func main() {
 
 		flog.Info("solving for %q...", secret)
 		solve(os.Stdout, secret, c)
+	} else {
+		test(testFlag, c, showHistogram)
 	}
-
-	test(testFlag, c, showHistogram)
 }
 
 func test(count int, c *corpus, showHistogram bool) {
@@ -76,7 +106,7 @@ func test(count int, c *corpus, showHistogram bool) {
 		words     = make(chan string)
 
 		histogramMu sync.Mutex
-		histogram   [18][]string
+		histogram   [25][]string
 	)
 
 	for i := 0; i < 8; i++ {

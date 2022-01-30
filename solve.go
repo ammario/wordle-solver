@@ -58,10 +58,7 @@ type puzzle struct {
 	hints [][5]letterHint
 }
 
-func (p *puzzle) guess(possibilities map[string]struct{}) string {
-	if p.turn == 0 {
-		return "arose"
-	}
+func (p *puzzle) guess(c *corpus, possibilities map[string]struct{}) string {
 	// Excise invalid guesses.
 	for i := 0; i < p.turn; i++ {
 		lineHint := p.hints[i]
@@ -90,15 +87,19 @@ func (p *puzzle) guess(possibilities map[string]struct{}) string {
 		}
 	}
 
-	var guess string
+	var (
+		bestGuess string
+		bestScore float64
+	)
 	for word := range possibilities {
-		guess = word
-		break
+		score := c.scores[word]
+		if score >= bestScore {
+			bestGuess, bestScore = word, score
+		}
 	}
 
-	delete(possibilities, guess)
-
-	return guess
+	delete(possibilities, bestGuess)
+	return bestGuess
 }
 
 func giveHint(secret string, guess string) lineHint {
@@ -127,7 +128,7 @@ func solve(log io.Writer, secret string, c *corpus) int {
 	}
 
 	for {
-		guess := p.guess(possibilities)
+		guess := p.guess(c, possibilities)
 		h := giveHint(secret, guess)
 		fmt.Fprintf(log, "%v: %v\n", guess, h.String())
 		if h.won() {
