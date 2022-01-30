@@ -14,7 +14,8 @@ go get github.com/ammario/wordle-solver
 
 # First Guesses
 Guesses are ranked by the average number of words they eliminate across
-all possible secrets.
+all possible secrets. This algorithm completes in n^2 time, so the
+words are provided here to save you from waiting.
 
 ## Best
 ```
