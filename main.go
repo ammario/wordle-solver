@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"flag"
 	"fmt"
 	"index/suffixarray"
@@ -23,15 +24,13 @@ type corpus struct {
 	index *suffixarray.Index
 }
 
+//go:embed words.txt
+var wordsFile []byte
+
 func main() {
 	go func() {
 		log.Fatal(http.ListenAndServe("localhost:6060", nil))
 	}()
-
-	wordsFile, err := ioutil.ReadFile("words.txt")
-	if err != nil {
-		flog.Fatal("open: %v", err)
-	}
 
 	var (
 		testFlag      int

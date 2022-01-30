@@ -1,4 +1,4 @@
-module github.com/ammario/wordle
+module github.com/ammario/wordle-solver
 
 go 1.18
 
