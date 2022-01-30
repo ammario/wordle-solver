@@ -1,6 +1,6 @@
 # wordle-solver
 
-`wordle-solver` is one of many wordle solvers. The codebase is in
+`wordle-solver` is one of many wordle solvers. This code is in
 an abysmal state, and I do not plan on cleaning it.
 
 # Install
@@ -15,7 +15,7 @@ go get github.com/ammario/wordle-solver
 # First Guesses
 Guesses are ranked by the average number of words they eliminate across
 all possible secrets. This algorithm completes in n^2 time, so the
-words are provided here to save you from waiting.
+first guesses (most expensive) are provided here to save you from waiting.
 
 ## Best
 ```
