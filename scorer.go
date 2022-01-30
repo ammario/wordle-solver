@@ -2,6 +2,26 @@ package main
 
 type scoredWords map[string]float64
 
+func uniqueLetters(w string) int {
+	var counts [256]bool
+	for _, b := range w {
+		counts[b] = true
+	}
+
+	var count int
+	for _, b := range counts {
+		if b {
+			count++
+		}
+	}
+	return count
+}
+
+func scoreWords2(words []string) scoredWords {
+	//sw := make(scoredWords)
+	return nil
+}
+
 func scoreWords(words []string) scoredWords {
 	// scorer functions by summing how many times each letter occurs at a particular position
 
@@ -16,6 +36,8 @@ func scoreWords(words []string) scoredWords {
 	sw := make(scoredWords)
 	for _, w := range words {
 		var score float64
+		// Dock repeating letters
+
 		// Disqualify as many as possible based on position
 		for i, b := range w {
 			// Optimize for 50% elimination
@@ -23,8 +45,14 @@ func scoreWords(words []string) scoredWords {
 			// This one optimizes for the rarest letters
 			//score += float64(len(words)) / counts[i][b]
 
-			score += float64(len(words)) / counts[i][b]
+			score += counts[i][b] / float64(len(words))
 		}
+
+		score = 1 / score
+
+		score = float64(uniqueLetters(w)) * score
+
+		//score = 10
 
 		// Score for existence in word, not position
 		//for _, b := range w {

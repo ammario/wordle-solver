@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
+	"time"
 )
 
 type hint int
@@ -54,52 +56,150 @@ func (h lineHint) won() bool {
 }
 
 type puzzle struct {
-	turn  int
 	hints [][5]letterHint
 }
 
-func (p *puzzle) guess(c *corpus, possibilities map[string]struct{}) string {
+func (p puzzle) turn() int {
+	return len(p.hints)
+}
+
+func (p *puzzle) copy() *puzzle {
+	pp := &puzzle{}
+	for _, h := range p.hints {
+		pp.hints = append(pp.hints, h)
+	}
+	return pp
+}
+
+func fastIndex(str string, search byte) int {
+	switch {
+	case str[0] == search:
+		return 0
+	case str[1] == search:
+		return 1
+	case str[2] == search:
+		return 2
+	case str[3] == search:
+		return 3
+	case str[4] == search:
+		return 4
+	default:
+		return -1
+	}
+	panic("oops")
+}
+
+// Guess does not mutate possibilities.
+func (p *puzzle) guess(recur bool, c *corpus, ps map[string]struct{}, deletes []string) (string, []string) {
+	if p.turn() == 0 {
+		// We proved this is the most eliminating word
+		return "tares", nil
+	}
 	// Excise invalid guesses.
-	for i := 0; i < p.turn; i++ {
+	for i := 0; i < p.turn(); i++ {
 		lineHint := p.hints[i]
-		for i, letterHint := range lineHint {
-			for word := range possibilities {
-				// Artifact
-				if len(word) != 5 {
-					delete(possibilities, word)
-					continue
-				}
+	wordLoop:
+		for word := range ps {
+			// Artifact
+			if len(word) != 5 {
+				deletes = append(deletes, word)
+				continue
+			}
+			for i, letterHint := range lineHint {
 				switch letterHint.hint {
 				case hintNone:
-					if strings.Contains(word, string(letterHint.letter)) {
-						delete(possibilities, word)
+					if fastIndex(word, letterHint.letter) >= 0 {
+						deletes = append(deletes, word)
+						continue wordLoop
 					}
 				case hintInWord:
-					if !strings.Contains(word, string(letterHint.letter)) {
-						delete(possibilities, word)
+					if i := fastIndex(word, letterHint.letter); i < 0 {
+						deletes = append(deletes, word)
+						continue wordLoop
+					}
+					if word[i] == letterHint.letter {
+						deletes = append(deletes, word)
+						continue wordLoop
 					}
 				case hintRight:
 					if word[i] != letterHint.letter {
-						delete(possibilities, word)
+						deletes = append(deletes, word)
+						continue wordLoop
 					}
 				}
 			}
 		}
 	}
 
+	if !recur {
+		for guess := range ps {
+			return guess, deletes
+		}
+	} else {
+		for _, d := range deletes {
+			//fmt.Printf("delete: %v\n", d)
+			delete(ps, d)
+		}
+	}
+
+	type scoredGuess struct {
+		score float64
+		guess string
+	}
+
+	var (
+		scoredGuessesMu sync.Mutex
+		scoredGuesses   []scoredGuess
+		wg              = sync.WaitGroup{}
+		guesses         = make(chan string)
+	)
+
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			for guess := range guesses {
+				var score float64
+				//start := time.Now()
+				for maybeSecret := range ps {
+					pp := p.copy()
+					pp.hints = append(pp.hints, giveHint(maybeSecret, guess))
+					_, newDeletes := pp.guess(false, c, ps, deletes)
+					score += float64(len(newDeletes))
+					//fmt.Printf("%v > %v | %v %v\n", guess, maybeSecret, len(newPos), len(possibilities))
+				}
+				//fmt.Printf("%v | d=%v | %v | %v\n", guess, score, time.Since(start), len(ps))
+				scoredGuessesMu.Lock()
+				scoredGuesses = append(scoredGuesses, scoredGuess{
+					score: score,
+					guess: guess,
+				})
+				scoredGuessesMu.Unlock()
+			}
+		}()
+	}
+	// For each remaining possibility, pretend every other remaining possibility is the secret.
+	// Which possibility has the lowest average turns to discovery?
+	for guess := range ps {
+		guesses <- guess
+	}
+	close(guesses)
+
+	wg.Wait()
+
 	var (
 		bestGuess string
 		bestScore float64
 	)
-	for word := range possibilities {
-		score := c.scores[word]
-		if score >= bestScore {
-			bestGuess, bestScore = word, score
+	for _, gs := range scoredGuesses {
+		if gs.score > bestScore {
+			bestScore, bestGuess = gs.score, gs.guess
 		}
 	}
 
-	delete(possibilities, bestGuess)
-	return bestGuess
+	deletes = append(deletes, bestGuess)
+	return bestGuess, deletes
 }
 
 func giveHint(secret string, guess string) lineHint {
@@ -127,15 +227,25 @@ func solve(log io.Writer, secret string, c *corpus) int {
 		possibilities[w] = struct{}{}
 	}
 
+	var (
+		guess   string
+		deletes []string
+	)
+
+	deletes = make([]string, 0, len(possibilities))
+
 	for {
-		guess := p.guess(c, possibilities)
+		start := time.Now()
+		guess, deletes = p.guess(true, c, possibilities, deletes)
+		for _, d := range deletes {
+			delete(possibilities, d)
+		}
 		h := giveHint(secret, guess)
-		fmt.Fprintf(log, "%v: %v\n", guess, h.String())
+		fmt.Fprintf(log, "rem %04d -> %v: %v | took %v\n", len(possibilities), guess, h.String(), time.Since(start))
 		if h.won() {
-			fmt.Fprintf(log, "%q found in %v guesses :)\n", secret, p.turn+1)
-			return p.turn
+			fmt.Fprintf(log, "%q found in %v guesses :)\n", secret, p.turn()+1)
+			return p.turn()
 		}
 		p.hints = append(p.hints, h)
-		p.turn++
 	}
 }

@@ -5,22 +5,29 @@ import (
 	"fmt"
 	"index/suffixarray"
 	"io/ioutil"
+	"log"
+	"math/rand"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
-	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"go.coder.com/flog"
 )
 
 type corpus struct {
-	words  []string
-	index  *suffixarray.Index
-	scores scoredWords
+	words []string
+	index *suffixarray.Index
 }
 
 func main() {
+	go func() {
+		log.Fatal(http.ListenAndServe("localhost:6060", nil))
+	}()
+
 	wordsFile, err := ioutil.ReadFile("words.txt")
 	if err != nil {
 		flog.Fatal("open: %v", err)
@@ -52,34 +59,8 @@ func main() {
 		}
 	}
 	c := &corpus{
-		index:  index,
-		words:  words,
-		scores: scoreWords(words),
-	}
-
-	if showTop {
-		type scoredWord struct {
-			word  string
-			score float64
-		}
-		scoreArr := make([]scoredWord, 0, len(c.scores))
-
-		for word, score := range c.scores {
-			scoreArr = append(scoreArr, scoredWord{
-				word:  word,
-				score: score,
-			})
-		}
-		sort.Slice(scoreArr, func(i, j int) bool {
-			return scoreArr[i].score < scoreArr[j].score
-		})
-		fmt.Printf("top words: ")
-		for i := 0; i < 10; i++ {
-			fmt.Printf("%v ", scoreArr[i].word)
-		}
-
-		fmt.Printf("\n")
-
+		index: index,
+		words: words,
 	}
 
 	if testFlag == 0 {
@@ -122,11 +103,9 @@ func test(count int, c *corpus, showHistogram bool) {
 			}
 		}()
 	}
-
+	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < count; i++ {
-		for _, w := range c.words {
-			words <- w
-		}
+		words <- c.words[rand.Intn(len(c.words))]
 	}
 	close(words)
 	wg.Wait()
