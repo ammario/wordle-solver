@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"index/suffixarray"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
@@ -20,8 +19,9 @@ import (
 )
 
 type corpus struct {
-	words []string
-	index *suffixarray.Index
+	firstGuess string
+	words      []string
+	index      *suffixarray.Index
 }
 
 //go:embed words.txt
@@ -29,15 +29,17 @@ var wordsFile []byte
 
 func main() {
 	go func() {
-		log.Fatal(http.ListenAndServe("localhost:6060", nil))
+		_ = http.ListenAndServe("localhost:6060", nil)
 	}()
 
 	var (
 		testFlag      int
 		showHistogram bool
 		showTop       bool
+		firstGuess    string
 	)
 
+	flag.StringVar(&firstGuess, "first-guess", "tares", "first word guess")
 	flag.IntVar(&testFlag, "test", 0, "test algorithm performance")
 	flag.BoolVar(&showHistogram, "hist", false, "show histogram with test")
 	flag.BoolVar(&showTop, "show-top", false, "show top words")
@@ -58,8 +60,9 @@ func main() {
 		}
 	}
 	c := &corpus{
-		index: index,
-		words: words,
+		firstGuess: firstGuess,
+		index:      index,
+		words:      words,
 	}
 
 	if testFlag == 0 {

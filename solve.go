@@ -92,8 +92,7 @@ func fastIndex(str string, search byte) int {
 // Guess does not mutate possibilities.
 func (p *puzzle) guess(recur bool, c *corpus, ps map[string]struct{}, deletes []string) (string, []string) {
 	if p.turn() == 0 {
-		// We proved this is the most eliminating word
-		return "tares", nil
+		return c.firstGuess, nil
 	}
 	// Excise invalid guesses.
 	for i := 0; i < p.turn(); i++ {
