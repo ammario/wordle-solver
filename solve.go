@@ -56,7 +56,8 @@ func (h lineHint) won() bool {
 }
 
 type puzzle struct {
-	hints [][5]letterHint
+	hardMode bool
+	hints    [][5]letterHint
 }
 
 func (p puzzle) turn() int {
@@ -141,6 +142,12 @@ func (p *puzzle) guess(recur bool, c *corpus, ps map[string]struct{}, deletes []
 		}
 	}
 
+	if len(ps) == 1 {
+		for guess := range ps {
+			return guess, deletes
+		}
+	}
+
 	type scoredGuess struct {
 		score float64
 		guess string
@@ -158,15 +165,17 @@ func (p *puzzle) guess(recur bool, c *corpus, ps map[string]struct{}, deletes []
 		go func() {
 			defer wg.Done()
 
+			deletes := make([]string, 0, 1024)
+
 			for guess := range guesses {
 				var score float64
 				//start := time.Now()
 				for maybeSecret := range ps {
 					pp := p.copy()
 					pp.hints = append(pp.hints, giveHint(maybeSecret, guess))
-					_, newDeletes := pp.guess(false, c, ps, deletes)
-					score += float64(len(newDeletes))
-					//fmt.Printf("%v > %v | %v %v\n", guess, maybeSecret, len(newPos), len(possibilities))
+					_, deletes = pp.guess(false, c, ps, deletes[:0])
+					score += float64(len(deletes))
+					//fmt.Printf("%v > %v | %v %v\n", guess, maybeSecret, len(deletes), len(ps))
 				}
 				//fmt.Printf("%v | d=%v | %v | %v\n", guess, score, time.Since(start), len(ps))
 				scoredGuessesMu.Lock()
@@ -178,10 +187,16 @@ func (p *puzzle) guess(recur bool, c *corpus, ps map[string]struct{}, deletes []
 			}
 		}()
 	}
-	// For each remaining possibility, pretend every other remaining possibility is the secret.
-	// Which possibility has the lowest average turns to discovery?
-	for guess := range ps {
-		guesses <- guess
+	// For each word, pretend every other remaining possibility is the secret.
+	// Which guess has the greatest elimination?
+	if p.hardMode {
+		for guess := range ps {
+			guesses <- guess
+		}
+	} else {
+		for _, guess := range c.words {
+			guesses <- guess
+		}
 	}
 	close(guesses)
 
@@ -192,12 +207,18 @@ func (p *puzzle) guess(recur bool, c *corpus, ps map[string]struct{}, deletes []
 		bestScore float64
 	)
 	for _, gs := range scoredGuesses {
-		if gs.score > bestScore {
+		if gs.score >= bestScore {
 			bestScore, bestGuess = gs.score, gs.guess
 		}
 	}
+	if bestGuess == "" {
+		panic("no guess?")
+	}
+	if len(ps) == 1 {
+		fmt.Println(bestGuess, bestScore)
+		fmt.Println(ps)
+	}
 
-	deletes = append(deletes, bestGuess)
 	return bestGuess, deletes
 }
 
@@ -217,8 +238,8 @@ func giveHint(secret string, guess string) lineHint {
 	return hint
 }
 
-func solve(log io.Writer, secret string, c *corpus) int {
-	p := puzzle{}
+func solve(log io.Writer, secret string, hardMode bool, c *corpus) int {
+	p := puzzle{hardMode: hardMode}
 
 	// Copy the possibilities array for modification.
 	possibilities := make(map[string]struct{}, len(c.words))
@@ -239,6 +260,7 @@ func solve(log io.Writer, secret string, c *corpus) int {
 		for _, d := range deletes {
 			delete(possibilities, d)
 		}
+		delete(possibilities, guess)
 		h := giveHint(secret, guess)
 		fmt.Fprintf(log, "rem %04d -> %v: %v | took %v\n", len(possibilities)+1, guess, h.String(), time.Since(start))
 		if h.won() {

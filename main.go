@@ -36,6 +36,7 @@ func main() {
 		testFlag      int
 		showHistogram bool
 		showTop       bool
+		hardMode      bool
 		firstGuess    string
 	)
 
@@ -43,6 +44,7 @@ func main() {
 	flag.IntVar(&testFlag, "test", 0, "test algorithm performance")
 	flag.BoolVar(&showHistogram, "hist", false, "show histogram with test")
 	flag.BoolVar(&showTop, "show-top", false, "show top words")
+	flag.BoolVar(&hardMode, "hard", false, "must use prior hints")
 
 	flag.Parse()
 
@@ -75,13 +77,13 @@ func main() {
 		}
 
 		flog.Info("solving for %q...", secret)
-		solve(os.Stdout, secret, c)
+		solve(os.Stdout, secret, hardMode, c)
 	} else {
-		test(testFlag, c, showHistogram)
+		test(testFlag, c, hardMode, showHistogram)
 	}
 }
 
-func test(count int, c *corpus, showHistogram bool) {
+func test(count int, c *corpus, hardMode bool, showHistogram bool) {
 	var (
 		solves    uint64
 		turnCount uint64
@@ -95,7 +97,7 @@ func test(count int, c *corpus, showHistogram bool) {
 	for i := 0; i < 8; i++ {
 		go func() {
 			for w := range words {
-				turns := solve(ioutil.Discard, w, c)
+				turns := solve(ioutil.Discard, w, hardMode, c)
 				atomic.AddUint64(&turnCount, uint64(turns))
 				atomic.AddUint64(&solves, 1)
 
