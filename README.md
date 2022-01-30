@@ -1,7 +1,7 @@
 # wordle-solver
 
 `wordle-solver` is one of many wordle solvers. The codebase is in
-an abyssmal state, and I do not plan on cleaning it.
+an abysmal state, and I do not plan on cleaning it.
 
 # Install
 
