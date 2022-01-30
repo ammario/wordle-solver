@@ -241,7 +241,7 @@ func solve(log io.Writer, secret string, c *corpus) int {
 			delete(possibilities, d)
 		}
 		h := giveHint(secret, guess)
-		fmt.Fprintf(log, "rem %04d -> %v: %v | took %v\n", len(possibilities), guess, h.String(), time.Since(start))
+		fmt.Fprintf(log, "rem %04d -> %v: %v | took %v\n", len(possibilities)+1, guess, h.String(), time.Since(start))
 		if h.won() {
 			fmt.Fprintf(log, "%q found in %v guesses :)\n", secret, p.turn()+1)
 			return p.turn()
