@@ -1,6 +1,6 @@
 # wordle-solver
 
-`wordle-solver` one of many wordle solvers. The codebase is in
+`wordle-solver` is one of many wordle solvers. The codebase is in
 an abyssmal state, and I do not plan on cleaning it.
 
 # Install
@@ -9,5 +9,5 @@ an abyssmal state, and I do not plan on cleaning it.
 go get github.com/ammario/wordle-solver
 ```
 
-# Basic usage
+# Basic Usage
 [![asciicast](https://asciinema.org/a/evCGbBUnraHdsT8fWEQT66dQJ.svg)](https://asciinema.org/a/evCGbBUnraHdsT8fWEQT66dQJ)
