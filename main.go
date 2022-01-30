@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"index/suffixarray"
 	"io/ioutil"
 	"os"
@@ -69,12 +70,20 @@ func test(c *corpus) {
 		turnCount uint64
 		wg        sync.WaitGroup
 		words     = make(chan string)
+
+		histogramMu sync.Mutex
+		histogram   [18][]string
 	)
 
 	for i := 0; i < 8; i++ {
 		go func() {
 			for w := range words {
-				atomic.AddUint64(&turnCount, uint64(solve(ioutil.Discard, w, c)))
+				turns := solve(ioutil.Discard, w, c)
+				atomic.AddUint64(&turnCount, uint64(turns))
+
+				histogramMu.Lock()
+				histogram[turns] = append(histogram[turns], w)
+				histogramMu.Unlock()
 			}
 		}()
 	}
@@ -85,5 +94,12 @@ func test(c *corpus) {
 	close(words)
 	wg.Wait()
 
-	flog.Info("average solution in %.2f steps", float64(turnCount)/float64(len(c.words)))
+	flog.Info("average solution in %04.2f steps", float64(turnCount)/float64(len(c.words)))
+	for i, h := range histogram {
+		fmt.Printf("in turns %2d: %05.2f%% | ", i+1, float64(len(h))/float64(len(c.words))*100)
+		for i := 0; i < len(h) && i < 7; i++ {
+			fmt.Printf("%v ", h[i])
+		}
+		fmt.Printf("\n")
+	}
 }
