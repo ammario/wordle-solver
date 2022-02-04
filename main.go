@@ -15,7 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"go.coder.com/flog"
+	"github.com/coder/flog"
 )
 
 type corpus struct {
