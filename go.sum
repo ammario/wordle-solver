@@ -1,5 +1,7 @@
 github.com/coder/flog v0.0.0-20220203185112-0de055455a5e h1:PXnXmDAeX7yeApiHojFzpma81BrTHXnMFIQXSmW0qCw=
 github.com/coder/flog v0.0.0-20220203185112-0de055455a5e/go.mod h1:UQlQvrkJBvnRGo69Le8E24Tcl5SJleAAR7gYEHzAmdQ=
+github.com/coder/flog v0.0.0-20220204005541-f416f3427f92 h1:1Ls/tYfve1fSjlR2Ygm5Ma+4LKNoPAoTrsDJZWDJTBg=
+github.com/coder/flog v0.0.0-20220204005541-f416f3427f92/go.mod h1:UQlQvrkJBvnRGo69Le8E24Tcl5SJleAAR7gYEHzAmdQ=
 github.com/fatih/color v1.13.0 h1:8LOYc1KYPPmyKMuN8QV2DNRWNbLo6LZ0iLs8+mlH53w=
 github.com/fatih/color v1.13.0/go.mod h1:kLAiJbzzSOZDVNGyDpeOxJ47H46qBXwg5ILebYFFOfk=
 github.com/mattn/go-colorable v0.1.9/go.mod h1:u6P/XSegPjTcexA+o6vUJrdnUu04hMope9wVRipJSqc=

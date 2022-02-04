@@ -2,7 +2,7 @@ module github.com/ammario/wordle-solver
 
 go 1.18
 
-require github.com/coder/flog v0.0.0-20220203185112-0de055455a5e
+require github.com/coder/flog v0.0.0-20220204005541-f416f3427f92
 
 require (
 	github.com/fatih/color v1.13.0 // indirect
