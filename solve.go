@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/coder/flog"
 )
 
 type hint int
@@ -238,7 +239,7 @@ func giveHint(secret string, guess string) lineHint {
 	return hint
 }
 
-func solve(log io.Writer, secret string, hardMode bool, c *corpus) int {
+func solve(log *flog.Logger, secret string, hardMode bool, c *corpus) int {
 	p := puzzle{hardMode: hardMode}
 
 	// Copy the possibilities array for modification.
@@ -262,9 +263,9 @@ func solve(log io.Writer, secret string, hardMode bool, c *corpus) int {
 		}
 		delete(possibilities, guess)
 		h := giveHint(secret, guess)
-		fmt.Fprintf(log, "rem %04d -> %v: %v | took %v\n", len(possibilities)+1, guess, h.String(), time.Since(start))
+		log.Info("rem %04d -> %v: %v | took %v", len(possibilities)+1, guess, h.String(), time.Since(start))
 		if h.won() {
-			fmt.Fprintf(log, "%q found in %v guesses :)\n", secret, p.turn()+1)
+			log.Success("%q found in %v guesses :)", secret, p.turn()+1)
 			return p.turn()
 		}
 		p.hints = append(p.hints, h)

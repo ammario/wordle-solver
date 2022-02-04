@@ -9,7 +9,6 @@ import (
 	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
-	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -77,7 +76,7 @@ func main() {
 		}
 
 		flog.Info("solving for %q...", secret)
-		solve(os.Stdout, secret, hardMode, c)
+		solve(flog.New(), secret, hardMode, c)
 	} else {
 		test(testFlag, c, hardMode, showHistogram)
 	}
@@ -97,7 +96,7 @@ func test(count int, c *corpus, hardMode bool, showHistogram bool) {
 	for i := 0; i < 8; i++ {
 		go func() {
 			for w := range words {
-				turns := solve(ioutil.Discard, w, hardMode, c)
+				turns := solve(&flog.Logger{W: ioutil.Discard}, w, hardMode, c)
 				atomic.AddUint64(&turnCount, uint64(turns))
 				atomic.AddUint64(&solves, 1)
 
